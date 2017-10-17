@@ -8,6 +8,8 @@ __pycache__/
 
 # test folder for now
 tests/
+.vscode/
+*.json
 
 # Distribution / packaging
 .Python
