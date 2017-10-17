@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 import os
 import sys
 from troposphere import Template
@@ -29,12 +29,24 @@ def getIAM(path: str, prefix: str) -> Role:
   iam_file = "".join([ iam_path, "/", iam_name, ".py"])
   if os.path.isfile(iam_file):
     # we need to import here the file and call the get_iam() function
-    import sys
     sys.path.insert(0, iam_path)
     iam_module = __import__(iam_name)
     return iam_module.get_iam()
   else:
     raise MissingFile("IAM file missing")
+
+
+def getEnvVars(path: str, prefix: str) -> dict:
+  ''' Returns the Env Vars saved in path/prefixENV.py '''
+  env_name = prefix + "ENV"
+  env_path = "".join([path, prefix])
+  env_file = "".join([env_path, "/", env_name, ".py"])
+  if os.path.isfile(env_file):
+    sys.path.insert(0, env_path)
+    env_module = __import__(env_name)
+    return env_module.get_env()
+  else:
+    return {}
 
 
 def getFunctionCode(path: str, prefix: str) -> List[str]:
@@ -53,15 +65,14 @@ def folders(path: str) -> List[str]:
   return list(filter(lambda x: os.path.isdir(path + x), xs))
 
 
-def createFuncTemplate(name: str, code: List[str], iam_role: Role) -> Function:
+def getLambdaBuilder(name: str, code: List[str], role: Role) -> LambdaBuilder:
   ''' Takes the source code and an IAM role and creates a lambda function '''
   return LambdaBuilder() \
     .setName(name) \
     .setHandler(name + "_handler") \
     .setSourceCode(code)\
-    .setRole(iam_role) \
-    .setRuntime(LambdaRuntime.Python3x) \
-    .build()
+    .setRole(role) \
+    .setRuntime(LambdaRuntime.Python3x)
 
 
 def addFunction(path: str, name: str, template: Template) -> Template:
@@ -69,8 +80,12 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   source_code = getFunctionCode(path, name)
   iam_role = getIAM(path, name)
   template.add_resource(iam_role)
-  template.add_resource(createFuncTemplate(name, source_code, iam_role))
+  func = getLambdaBuilder(name, source_code, iam_role)
+  for key, value in getEnvVars(path, name).items():
+    func = func.addEnvironmentVariable(key, value )
+  template.add_resource(func.build())
   return template
+
 
 def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
   for func in funcs:
