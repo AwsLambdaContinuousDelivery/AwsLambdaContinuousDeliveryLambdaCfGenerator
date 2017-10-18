@@ -2,15 +2,19 @@ sudo: required
 services:
   - docker
 
+language: python
+
 env:
   global:
-    secure: FAKE # You should `travis` to set the environment variables used by these scripts.
+    - COMMIT=${TRAVIS_COMMIT::8}
+    - secure: FAKE
 
 cache: 
   directories: 
-    - "$HOME/" 
+    - "$HOME/"
 
 after_success:
+  - docker --version
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
   - export REPO=janosp/lambdacfbuilder
   - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi`
