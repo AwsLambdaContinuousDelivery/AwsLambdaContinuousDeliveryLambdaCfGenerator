@@ -1,0 +1,24 @@
+sudo: required
+services:
+  - docker
+language: c
+
+env:
+  global:
+    secure: FAKE # You should `travis` to set the environment variables used by these scripts.
+before_install:
+  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
+cache: 
+  directories: 
+    - "$HOME/" 
+
+after_success:
+  - docker build
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+  - export REPO=janosp/lambdacfbuilder
+  - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi`
+  - docker build -f Dockerfile -t $REPO:$COMMIT .
+  - docker tag $REPO:$COMMIT $REPO:$TAG
+  - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
+  - docker push $REPO
