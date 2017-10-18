@@ -94,7 +94,7 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
 
 
 if __name__ == "__main__":
-  path = sys.argv[1]
+  path = os.path.dirname(os.path.realpath(__file__))
   t = Template()
   functions = folders(path)
   t = fillTemplate(path, functions, t)
