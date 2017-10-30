@@ -7,4 +7,6 @@ RUN apk update && apk upgrade && \
 
 COPY createCF.py /
 
+RUN chmod +x createCF.py
+
 CMD [ "python3", "./createCF.py" ]
