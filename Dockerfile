@@ -7,4 +7,4 @@ RUN apk update && apk upgrade && \
 
 COPY createCF.py /pythonfile
 
-RUN ENV cf /pythonfile/createCF.py
+ENV cf /pythonfile/createCF.py
