@@ -5,6 +5,6 @@ RUN apk update && apk upgrade && \
     pip3 install troposphere && \
     pip3 install git+https://github.com/jpotecki/TroposphereWrapper.git
 
-COPY createCF.py /
+COPY createCF.py /pythonfile
 
-CMD [ "python3", "./createCF.py" ]
+RUN ENV cf /pythonfile/createCF.py
