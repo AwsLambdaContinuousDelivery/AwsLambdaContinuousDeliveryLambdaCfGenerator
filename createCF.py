@@ -96,7 +96,7 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
 if __name__ == "__main__":
   path = os.path.dirname(os.path.realpath(__file__))
   t = Template()
+  print("using path" + path)
   functions = folders(path)
   t = fillTemplate(path, functions, t)
   print(t.to_json())
-
