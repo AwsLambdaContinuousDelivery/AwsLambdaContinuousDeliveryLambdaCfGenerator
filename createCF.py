@@ -98,6 +98,7 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
 
 
 if __name__ == "__main__":
+  print ("using python version: " + sys.version)
   path = os.path.dirname(os.path.realpath(__file__))
   t = Template()
   print("using path" + path)
