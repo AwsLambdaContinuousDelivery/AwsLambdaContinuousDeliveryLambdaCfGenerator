@@ -69,7 +69,7 @@ def get_iam() -> Role:
   helper = RoleBuilderHelper()
   s3FullAccessPolicy = helper.s3FullAccessPolicy()
   pipeAccessPolicy = helper.awsCodePipelineCustomActionAccess()
-  logsAccessPolict = helper.oneClickCreateLogsPolicy()
+  logsAccessPolicy = helper.oneClickCreateLogsPolicy()
   return RoleBuilder() \
     .setName("func1IAMRole") \
     .setAssumePolicy(
@@ -77,6 +77,6 @@ def get_iam() -> Role:
       ) \
       .addPolicy(s3FullAccessPolicy) \
       .addPolicy(pipeAccessPolicy) \
-      .addPolicy(logsAccessPolict) \
+      .addPolicy(logsAccessPolicy) \
       .build()
 ```
