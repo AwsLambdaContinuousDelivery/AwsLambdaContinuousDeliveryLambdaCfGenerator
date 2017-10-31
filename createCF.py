@@ -97,6 +97,11 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
     template = addFunction(path, func, template)
   return template
 
+def getTemplateFromFolder(path: str) -> Template:
+  t = Template()
+  functions = folders(path)
+  t = fillTemplate(path, functions, t)
+  return t
 
 if __name__ == "__main__":
   print ("using python version: " + sys.version)
@@ -104,10 +109,5 @@ if __name__ == "__main__":
     print("Error: Need the path of the folder with the functions")
     sys.exit(1)
   path = sys.argv[1]
-  # path = os.path.dirname(os.path.realpath(__file__))
-  t = Template()
-  print(t.to_json())
-  print("using path" + path)
-  functions = folders(path)
-  t = fillTemplate(path, functions, t)
+  t = getTemplateFromFolder(path)
   print(t.to_json())
