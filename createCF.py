@@ -1,9 +1,9 @@
 from typing import List, Dict
 import os
 import sys
-from troposphere import Template
-from troposphere.awslambda import Function
+from troposphere import Template, Output
 from troposphere.iam import Role
+from troposphere.awslambda import Function
 from troposphereWrapper.awslambda import *
 
 
@@ -88,7 +88,12 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   func = getLambdaBuilder(name, source_code, iam_role)
   for key, value in getEnvVars(path, name).items():
     func = func.addEnvironmentVariable(key, value )
-  template.add_resource(func.build())
+  func_ref = template.add_resource(func.build())
+  template.add_output([
+      Output( name + "ARN"
+            , Value = GetAtt(func_ref, "ARN")
+            , Description = "ARN for Lambda Function"
+            )])
   return template
 
 
@@ -97,11 +102,13 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
     template = addFunction(path, func, template)
   return template
 
+
 def getTemplateFromFolder(path: str) -> Template:
   t = Template()
   functions = folders(path)
   t = fillTemplate(path, functions, t)
   return t
+
 
 if __name__ == "__main__":
   print ("using python version: " + sys.version)
