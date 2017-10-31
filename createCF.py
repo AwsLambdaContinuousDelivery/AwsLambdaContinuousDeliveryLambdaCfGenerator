@@ -18,7 +18,6 @@ def getFileContent(filepath: str) -> List[str]:
   ''' Returns the (striped) filecontent from a file '''
   with open (filepath, "r") as xs:
     content = xs.readlines()
-  # content = list(map(lambda x: x.strip(), content))
   return content
 
 
@@ -104,6 +103,7 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
 
 
 def getTemplateFromFolder(path: str) -> Template:
+  ''' Transforms a folder with Lambdas into a CF Template '''
   t = Template()
   functions = folders(path)
   t = fillTemplate(path, functions, t)
