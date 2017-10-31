@@ -62,7 +62,8 @@ def getFunctionCode(path: str, prefix: str) -> List[str]:
 def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths '''
   xs = os.listdir(path)
-  xs = list(filter(lambda x: "lambdaCICDBuilder" in x, xs))
+  xs = list(filter(lambda x: "lambdaCICDBuilder" not in x, xs))
+  xs = list(filter(lambda x: x[0] != ".", xs))
   xs = list(filter(lambda x: os.path.isdir(path + x), xs))
   print("parsed folders:")
   print(xs)
@@ -99,8 +100,13 @@ def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
 
 if __name__ == "__main__":
   print ("using python version: " + sys.version)
-  path = os.path.dirname(os.path.realpath(__file__))
+  if len(sys.argv) < 2:
+    print("Error: Need the path of the folder with the functions")
+    sys.exit(1)
+  path = sys.argv[1]
+  # path = os.path.dirname(os.path.realpath(__file__))
   t = Template()
+  print(t.to_json())
   print("using path" + path)
   functions = folders(path)
   t = fillTemplate(path, functions, t)
