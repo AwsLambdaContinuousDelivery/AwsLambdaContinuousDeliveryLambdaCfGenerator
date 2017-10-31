@@ -30,7 +30,7 @@ phases:
   build:
     commands:
       - ls -a
-      - python3 lambdaCICDBuilder/createCF.py $(pwd)/
+      - python3 lambdaCICDBuilder/createCF.py $(pwd)/ >> stack.json
 artifacts:
   files:
     - stack.json
