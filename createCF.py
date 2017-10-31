@@ -64,8 +64,6 @@ def folders(path: str) -> List[str]:
   xs = list(filter(lambda x: "lambdaCICDBuilder" not in x, xs))
   xs = list(filter(lambda x: x[0] != ".", xs))
   xs = list(filter(lambda x: os.path.isdir(path + x), xs))
-  print("parsed folders:")
-  print(xs)
   return xs
 
 
@@ -111,7 +109,7 @@ def getTemplateFromFolder(path: str) -> Template:
 
 
 if __name__ == "__main__":
-  print ("using python version: " + sys.version)
+  # print ("using python version: " + sys.version)
   if len(sys.argv) < 2:
     print("Error: Need the path of the folder with the functions")
     sys.exit(1)
