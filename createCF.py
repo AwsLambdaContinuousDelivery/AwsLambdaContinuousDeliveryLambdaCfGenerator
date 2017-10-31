@@ -62,6 +62,7 @@ def getFunctionCode(path: str, prefix: str) -> List[str]:
 def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths '''
   xs = os.listdir(path)
+  xs = list(filter(lambda x: "lambdaCICDBuilder" in x, xs))
   return list(filter(lambda x: os.path.isdir(path + x), xs))
 
 
