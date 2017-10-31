@@ -63,7 +63,10 @@ def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths '''
   xs = os.listdir(path)
   xs = list(filter(lambda x: "lambdaCICDBuilder" in x, xs))
-  return list(filter(lambda x: os.path.isdir(path + x), xs))
+  xs = list(filter(lambda x: os.path.isdir(path + x), xs))
+  print("parsed folders:")
+  print(xs)
+  return xs
 
 
 def getLambdaBuilder(name: str, code: List[str], role: Role) -> LambdaBuilder:
