@@ -60,7 +60,7 @@ def getFunctionCode(path: str, prefix: str) -> List[str]:
 
 
 def folders(path: str) -> List[str]:
-  ''' Returns all Folders in the paths '''
+  ''' Returns all Folders in the paths except the `lambdaCICDBuilder folder'''
   xs = os.listdir(path)
   xs = list(filter(lambda x: "lambdaCICDBuilder" not in x, xs))
   xs = list(filter(lambda x: x[0] != ".", xs))
