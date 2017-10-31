@@ -15,7 +15,7 @@ class MissingFile(Exception):
 
 
 def getFileContent(filepath: str) -> List[str]:
-  ''' Returns the (striped) filecontent from a file '''
+  ''' Returns the filecontent from a file '''
   with open (filepath, "r") as xs:
     content = xs.readlines()
   return content
