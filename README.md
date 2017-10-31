@@ -8,11 +8,11 @@ tl;dr : [ LambdaFunction.py ] -> AWS CloudFormation file
 ## CodeBuild
 
 This tool is currently build to work with AWS CodeBuild and is using the Python 3 library
-`troposphere` and my own wrapper for it.
+`troposphere`, `awacs` and my own wrapper, which contains the dependencies for `troposphere` and `awacs`.
 
 It is tested with the `frolvlad/alpine-python3` docker image (and the following build spec is writting for this image)
 
-Use this build spec for CodeBuild:
+Use this build spec for CodeBuild, which will take the functions and outputs an `stack.json` artifact:
 
 ```yaml
 version: 0.2
@@ -26,7 +26,6 @@ phases:
   pre_build:
     commands:
       - git clone https://github.com/jpotecki/lambdaCICDBuilder.git
-      - pip3 install troposphere
       - pip3 install git+https://github.com/jpotecki/TroposphereWrapper.git
   build:
     commands:
@@ -34,8 +33,7 @@ phases:
       - python3 lambdaCICDBuilder/createCF.py $(pwd)/
 artifacts:
   files:
-    - /*
-  discard-path: yes
+    - stack.json
 ```
 
 
@@ -51,8 +49,8 @@ func1
 | func1Function.py
 | func1IAM.py
 func2
-|func2Function.py
-|func2IAM.py
+| func2Function.py
+| func2IAM.py
 ```
 
 Example `func1Function.py`:
