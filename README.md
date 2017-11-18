@@ -45,12 +45,14 @@ It is important that your functions have the following naming:
 - `{$name}Function.py` must consists the handler function, which has the naming structure `{$name}_handler(event, context)`
 - `{$name}IAM.py` must contain a function `get_IAM() -> Role` which returns a `troposphere.iam.Role`
 - If you need, you can also provide environment variables to the lambda function by adding a `{$name}ENV.py` file containing a `get_env() -> dict` function returning a dictionary of key, values. This file is optional
+- Alias are also supported by simply adding a `{$name}Alias.py` file containing a `get_alias(arn: str) -> Alias` function
 
 ```
 example
 | exampleFunction.py
 | exampleIAM.py
 | exampleENV.py
+| exampleAlias.py
 func2
 | func2Function.py
 | func2IAM.py
@@ -91,6 +93,19 @@ def get_iam() -> Role:
 def get_env() -> dict:
   return { "hello" : "world" }
 ```
+
+`example/exampleAlias.py`
+```python
+from troposphere.awslambda import Alias
+
+def get_alias(arn: str) -> Alias:
+  return Alias( alias
+              , Description = "Nothing"
+              , FunctionName = arn
+              , FunctionVersion = "$LATEST"
+              , Name = "exampleAlias" )
+```
+
 
 These files yield the following CloudFormation `json` template
 ```json
@@ -141,6 +156,20 @@ These files yield the following CloudFormation `json` template
                 "Runtime": "python3.6"
             },
             "Type": "AWS::Lambda::Function"
+        },
+        "exampleAlias": {
+            "Properties": {
+                "Description": "Nothing",
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "example",
+                        "ARN"
+                    ]
+                },
+                "FunctionVersion": "$LATEST",
+                "Name": "exampleAlias"
+            },
+            "Type": "AWS::Lambda::Alias"
         },
         "exampleIAMRole": {
             "Properties": {

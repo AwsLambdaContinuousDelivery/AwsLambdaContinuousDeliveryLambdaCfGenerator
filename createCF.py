@@ -3,7 +3,7 @@ import os
 import sys
 from troposphere import Template, Output
 from troposphere.iam import Role
-from troposphere.awslambda import Function
+from troposphere.awslambda import Function, Alias
 from troposphereWrapper.awslambda import *
 
 
@@ -48,6 +48,18 @@ def getEnvVars(path: str, prefix: str) -> dict:
     return {}
 
 
+def getFunctionAlias(path: str, prefix: str, arn: str) -> Alias:
+  ''' Returns the Alias if present '''
+  alias_name = prefix + "Alias"
+  alias_path = ''.join([path, prefix])
+  alias_file = ''.join([alias_path, "/", alias_name, ".py"])
+  if os.path.isfile(alias_file):
+    sys.path.insert(0, alias_path)
+    alias_module = __import__(alias_name)
+    return alias_module.get_alias(arn)
+  else:
+    return None
+
 def getFunctionCode(path: str, prefix: str) -> List[str]:
   ''' Extracts Source Code from the prefixFunction.py file '''
   func_name = prefix + "Function"
@@ -61,10 +73,10 @@ def getFunctionCode(path: str, prefix: str) -> List[str]:
 def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths except the `lambdaCICDBuilder folder'''
   xs = os.listdir(path)
-  xs = list(filter(lambda x: "lambdaCICDBuilder" not in x, xs))
-  xs = list(filter(lambda x: x[0] != ".", xs))
-  xs = list(filter(lambda x: os.path.isdir(path + x), xs))
-  return xs
+  xs = filter(lambda x: "lambdaCICDBuilder" not in x, xs)
+  xs = filter(lambda x: x[0] != ".", xs)
+  xs = filter(lambda x: os.path.isdir(path + x), xs)
+  return list(xs)
 
 
 def getLambdaBuilder(name: str, code: List[str], role: Role) -> LambdaBuilder:
@@ -86,6 +98,9 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   for key, value in getEnvVars(path, name).items():
     func = func.addEnvironmentVariable(key, value )
   func_ref = template.add_resource(func.build())
+  alias = getFunctionAlias(path, name,  GetAtt(func_ref, "ARN"))
+  if alias is not None:
+    template.add_resource(alias)
   template.add_output([
       Output( name + "ARN"
             , Value = GetAtt(func_ref, "ARN")
