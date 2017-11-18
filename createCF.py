@@ -103,7 +103,7 @@ def addFunction(path: str, name: str, template: Template) -> Template:
     template.add_resource(alias)
   template.add_output([
       Output( name + "ARN"
-            , Value = GetAtt(func_ref, "ARN")
+            , Value = GetAtt(func_ref, "Arn")
             , Description = "ARN for Lambda Function"
             )])
   return template
