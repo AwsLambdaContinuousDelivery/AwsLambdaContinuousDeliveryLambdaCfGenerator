@@ -6,8 +6,6 @@ from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias
 from troposphereWrapper.awslambda import *
 
-import src.testCreator
-
 class MissingFile(Exception):
   def __init__(self, message):
     self.message = message
