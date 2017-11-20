@@ -16,7 +16,8 @@ class MissingFile(Exception):
 def getFileContent(filepath: str) -> List[str]:
   ''' Returns the filecontent from a file '''
   with open (filepath, "r") as xs:
-    content = str(xs.read().splitlines())
+    content = xs.read().splitlines()
+  content = list(map(lambda x: str(x), content))
   return content
 
 
