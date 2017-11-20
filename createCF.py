@@ -84,7 +84,7 @@ def getLambdaBuilder(name: str, code: List[str], role: Role) -> LambdaBuilder:
   ''' Takes the source code and an IAM role and creates a lambda function '''
   return LambdaBuilder() \
     .setName(name) \
-    .setHandler(name + "_handler") \
+    .setHandler("index." + name + "_handler") \
     .setSourceCode(code)\
     .setRole(role) \
     .setRuntime(LambdaRuntime.Python3x)
