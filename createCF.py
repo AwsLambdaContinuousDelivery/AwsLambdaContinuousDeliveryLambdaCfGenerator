@@ -6,6 +6,7 @@ from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias
 from troposphereWrapper.awslambda import *
 
+import src.testCreator
 
 class MissingFile(Exception):
   def __init__(self, message):
@@ -17,7 +18,7 @@ class MissingFile(Exception):
 def getFileContent(filepath: str) -> List[str]:
   ''' Returns the filecontent from a file '''
   with open (filepath, "r") as xs:
-    content = xs.readlines()
+    content = str(xs.read().splitlines())
   return content
 
 
@@ -72,8 +73,10 @@ def getFunctionCode(path: str, prefix: str) -> List[str]:
 
 def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths except the `lambdaCICDBuilder folder'''
+  # TODO: Pretty ugly, we should find a better way
   xs = os.listdir(path)
   xs = filter(lambda x: "lambdaCICDBuilder" not in x, xs)
+  xs = filter(lambda x: "src" not in x, xs)
   xs = filter(lambda x: x[0] != ".", xs)
   xs = filter(lambda x: os.path.isdir(path + x), xs)
   return list(xs)
@@ -98,7 +101,7 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   for key, value in getEnvVars(path, name).items():
     func = func.addEnvironmentVariable(key, value )
   func_ref = template.add_resource(func.build())
-  alias = getFunctionAlias(path, name,  GetAtt(func_ref, "ARN"))
+  alias = getFunctionAlias(path, name, GetAtt(func_ref, "ARN"))
   if alias is not None:
     template.add_resource(alias)
   template.add_output([
