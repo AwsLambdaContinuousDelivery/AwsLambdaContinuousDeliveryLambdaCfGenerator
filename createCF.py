@@ -146,6 +146,5 @@ if __name__ == "__main__":
   parser.add_argument("-s", "--stage", help="Name of the stage", \
                       type = str)
   args = parser.parse_args()
-  print(args.stage)
   t = getTemplateFromFolder(args.path, args.stage)
   print(t.to_json())
