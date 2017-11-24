@@ -1,12 +1,12 @@
 from troposphereWrapper.iam import *
 
-def get_iam() -> Role:
+def get_iam(stage: str) -> Role:
   helper = RoleBuilderHelper()
   s3FullAccessPolicy = helper.s3FullAccessPolicy()
   pipeAccessPolicy = helper.awsCodePipelineCustomActionAccess()
   logsAccessPolicy = helper.oneClickCreateLogsPolicy()
   return RoleBuilder() \
-    .setName("exampleIAMRole") \
+    .setName("exampleIAMRole" + stage) \
     .setAssumePolicy(
       helper.defaultAssumeRolePolicyDocument("lambda.amazonaws.com")
       ) \

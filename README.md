@@ -30,10 +30,10 @@ phases:
   build:
     commands:
       - ls -a
-      - python3 lambdaCICDBuilder/createCF.py $(pwd)/ >> stack.json
+      - python3 lambdaCICDBuilder/createCF.py --path $(pwd)/ --stage "Alpha" >> alpha-stack.json
 artifacts:
   files:
-    - stack.json
+    - alpha-stack.json
 ```
 
 
@@ -43,9 +43,9 @@ It is important that your functions have the following naming:
 - Each function must be in an own folder which bears the name of the function starting with a lower case character
 - Each function folder must consists of two `python` files, which start with the name of the function (== foldername) appended with `Function.py` and `IAM.py` respectively
 - `{$name}Function.py` must consists the handler function, which has the naming structure `{$name}_handler(event, context)`
-- `{$name}IAM.py` must contain a function `get_IAM() -> Role` which returns a `troposphere.iam.Role`
-- If you need, you can also provide environment variables to the lambda function by adding a `{$name}ENV.py` file containing a `get_env() -> dict` function returning a dictionary of key, values. This file is optional
-- Alias are also supported by simply adding a `{$name}Alias.py` file containing a `get_alias(arn: str) -> Alias` function
+- `{$name}IAM.py` must contain a function `get_IAM(stage: str) -> Role` which returns a `troposphere.iam.Role`
+- If you need, you can also provide environment variables to the lambda function by adding a `{$name}ENV.py` file containing a `get_env(stage: str) -> dict` function returning a dictionary of key, values. This file is optional
+- Alias are also supported by simply adding a `{$name}Alias.py` file containing a `get_alias(arn: str, stage: str) -> Alias` function
 
 ```
 example
@@ -72,13 +72,13 @@ def example_handler(event, context):
 ```python
 from troposphereWrapper.iam import *
 
-def get_iam() -> Role:
+def get_iam(stage: str) -> Role:
   helper = RoleBuilderHelper()
   s3FullAccessPolicy = helper.s3FullAccessPolicy()
   pipeAccessPolicy = helper.awsCodePipelineCustomActionAccess()
   logsAccessPolicy = helper.oneClickCreateLogsPolicy()
   return RoleBuilder() \
-    .setName("exampleIAMRole") \
+    .setName("exampleIAMRole" + stage) \
     .setAssumePolicy(
       helper.defaultAssumeRolePolicyDocument("lambda.amazonaws.com")
       ) \
@@ -90,7 +90,7 @@ def get_iam() -> Role:
 
 `example/exampleENV.py`
 ```python
-def get_env() -> dict:
+def get_env(stage: str) -> dict:
   return { "hello" : "world" }
 ```
 
@@ -98,12 +98,12 @@ def get_env() -> dict:
 ```python
 from troposphere.awslambda import Alias
 
-def get_alias(arn: str) -> Alias:
-  return Alias( alias
+def get_alias(arn: str, stage: str) -> Alias:
+  return Alias( alias + stage
               , Description = "Nothing"
               , FunctionName = arn
               , FunctionVersion = "$LATEST"
-              , Name = "exampleAlias" )
+              , Name = "exampleAlias" + stage )
 ```
 
 
@@ -116,7 +116,7 @@ These files yield the following CloudFormation `json` template
             "Value": {
                 "Fn::GetAtt": [
                     "example",
-                    "ARN"
+                    "Arn"
                 ]
             }
         }
@@ -127,11 +127,11 @@ These files yield the following CloudFormation `json` template
                 "Code": {
                     "ZipFile": {
                         "Fn::Join": [
-                            "",
+                            "\n",
                             [
-                                "from typing import List\n",
-                                "\n",
-                                "def example_handler(event, context):\n",
+                                "from typing import List",
+                                "",
+                                "def example_handler(event, context):",
                                 "  return 0"
                             ]
                         ]
@@ -145,7 +145,7 @@ These files yield the following CloudFormation `json` template
                 "FunctionName": {
                     "Fn::Sub": "example${AWS::StackName}"
                 },
-                "Handler": "example_handler",
+                "Handler": "index.example_handler",
                 "MemorySize": 128,
                 "Role": {
                     "Fn::GetAtt": [
@@ -256,5 +256,301 @@ These files yield the following CloudFormation `json` template
         }
     }
 }
+{
+    "Outputs": {
+        "exampleARN": {
+            "Description": "ARN for Lambda Function",
+            "Value": {
+                "Fn::GetAtt": [
+                    "exampleAlpha",
+                    "Arn"
+                ]
+            }
+        }
+    },
+    "Resources": {
+        "exampleAlias": {
+            "Properties": {
+                "Description": "Nothing",
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "exampleAlpha",
+                        "Arn"
+                    ]
+                },
+                "FunctionVersion": "$LATEST",
+                "Name": "exampleAlias"
+            },
+            "Type": "AWS::Lambda::Alias"
+        },
+        "exampleAlpha": {
+            "Properties": {
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "from typing import List",
+                                "",
+                                "def example_handler(event, context):",
+                                "  return 0"
+                            ]
+                        ]
+                    }
+                },
+                "Environment": {
+                    "Variables": {
+                        "hello": "world"
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Sub": "exampleAlpha${AWS::StackName}"
+                },
+                "Handler": "index.example_handler",
+                "MemorySize": 128,
+                "Role": {
+                    "Fn::GetAtt": [
+                        "exampleIAMRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python3.6"
+            },
+            "Type": "AWS::Lambda::Function"
+        },
+        "exampleIAMRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "S3FullAccessPolicy-${AWS::StackName}"
+                        }
+                    },
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "codepipeline:AcknowledgeJob",
+                                        "codepipeline:GetJobDetails",
+                                        "codepipeline:PollForJobs",
+                                        "codepipeline:PutJobFailureResult",
+                                        "codepipeline:PutJobSuccessResult"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "AWSCodePipelineCustomActionAccess-${AWS::StackName}"
+                        }
+                    },
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:*:*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "OneClickCreateLogsPolicy-${AWS::StackName}"
+                        }
+                    }
+                ],
+                "RoleName": {
+                    "Fn::Sub": "exampleIAMRole-${AWS::StackName}"
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        }
+    }
+}
+Alpha
+{
+    "Outputs": {
+        "exampleARN": {
+            "Description": "ARN for Lambda Function",
+            "Value": {
+                "Fn::GetAtt": [
+                    "exampleAlpha",
+                    "Arn"
+                ]
+            }
+        }
+    },
+    "Resources": {
+        "exampleAliasAlpha": {
+            "Properties": {
+                "Description": "Nothing",
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "exampleAlpha",
+                        "Arn"
+                    ]
+                },
+                "FunctionVersion": "$LATEST",
+                "Name": "exampleAliasAlpha"
+            },
+            "Type": "AWS::Lambda::Alias"
+        },
+        "exampleAlpha": {
+            "Properties": {
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "from typing import List",
+                                "",
+                                "def example_handler(event, context):",
+                                "  return 0"
+                            ]
+                        ]
+                    }
+                },
+                "Environment": {
+                    "Variables": {
+                        "hello": "world"
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Sub": "exampleAlpha${AWS::StackName}"
+                },
+                "Handler": "index.example_handler",
+                "MemorySize": 128,
+                "Role": {
+                    "Fn::GetAtt": [
+                        "exampleIAMRoleAlpha",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python3.6"
+            },
+            "Type": "AWS::Lambda::Function"
+        },
+        "exampleIAMRoleAlpha": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "S3FullAccessPolicy-${AWS::StackName}"
+                        }
+                    },
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "codepipeline:AcknowledgeJob",
+                                        "codepipeline:GetJobDetails",
+                                        "codepipeline:PollForJobs",
+                                        "codepipeline:PutJobFailureResult",
+                                        "codepipeline:PutJobSuccessResult"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "AWSCodePipelineCustomActionAccess-${AWS::StackName}"
+                        }
+                    },
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:*:*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": {
+                            "Fn::Sub": "OneClickCreateLogsPolicy-${AWS::StackName}"
+                        }
+                    }
+                ],
+                "RoleName": {
+                    "Fn::Sub": "exampleIAMRoleAlpha-${AWS::StackName}"
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        }
+    }
+}
+
 
 ```

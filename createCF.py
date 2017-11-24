@@ -6,6 +6,8 @@ from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias
 from troposphereWrapper.awslambda import *
 
+import argparse
+
 class MissingFile(Exception):
   def __init__(self, message):
     self.message = message
@@ -21,7 +23,7 @@ def getFileContent(filepath: str) -> List[str]:
   return content
 
 
-def getIAM(path: str, prefix: str) -> Role:
+def getIAM(path: str, prefix: str, stage: str) -> Role:
   ''' Returns the get_iam() function in prefixIAM.py '''
   iam_name = prefix + "IAM"
   iam_path = "".join([ path, prefix])
@@ -30,12 +32,12 @@ def getIAM(path: str, prefix: str) -> Role:
     # we need to import here the file and call the get_iam() function
     sys.path.insert(0, iam_path)
     iam_module = __import__(iam_name)
-    return iam_module.get_iam()
+    return iam_module.get_iam(stage)
   else:
     raise MissingFile("IAM file missing")
 
 
-def getEnvVars(path: str, prefix: str) -> dict:
+def getEnvVars(path: str, prefix: str, stage: str) -> dict:
   ''' Returns the Env Vars saved in path/prefixENV.py '''
   env_name = prefix + "ENV"
   env_path = "".join([path, prefix])
@@ -43,12 +45,12 @@ def getEnvVars(path: str, prefix: str) -> dict:
   if os.path.isfile(env_file):
     sys.path.insert(0, env_path)
     env_module = __import__(env_name)
-    return env_module.get_env()
+    return env_module.get_env(stage)
   else:
     return {}
 
 
-def getFunctionAlias(path: str, prefix: str, arn: str) -> Alias:
+def getFunctionAlias(path: str, prefix: str, arn: str, stage: str) -> Alias:
   ''' Returns the Alias if present '''
   alias_name = prefix + "Alias"
   alias_path = ''.join([path, prefix])
@@ -56,7 +58,7 @@ def getFunctionAlias(path: str, prefix: str, arn: str) -> Alias:
   if os.path.isfile(alias_file):
     sys.path.insert(0, alias_path)
     alias_module = __import__(alias_name)
-    return alias_module.get_alias(arn)
+    return alias_module.get_alias(arn, stage)
   else:
     return None
 
@@ -81,26 +83,34 @@ def folders(path: str) -> List[str]:
   return list(xs)
 
 
-def getLambdaBuilder(name: str, code: List[str], role: Role) -> LambdaBuilder:
+def getLambdaBuilder( name: str
+                    , code: List[str]
+                    , role: Role
+                    , stage: str
+                    ) -> LambdaBuilder:
   ''' Takes the source code and an IAM role and creates a lambda function '''
   return LambdaBuilder() \
-    .setName(name) \
+    .setName(name + stage) \
     .setHandler("index." + name + "_handler") \
     .setSourceCode(code)\
     .setRole(role) \
     .setRuntime(LambdaRuntime.Python3x)
 
 
-def addFunction(path: str, name: str, template: Template) -> Template:
+def addFunction( path: str
+               , name: str
+               , template: Template
+               , stage: str
+               ) -> Template:
   ''' Takes a prefix & adds the lambda function to the template '''
   source_code = getFunctionCode(path, name)
-  iam_role = getIAM(path, name)
+  iam_role = getIAM(path, name, stage)
   template.add_resource(iam_role)
-  func = getLambdaBuilder(name, source_code, iam_role)
-  for key, value in getEnvVars(path, name).items():
-    func = func.addEnvironmentVariable(key, value )
+  func = getLambdaBuilder(name, source_code, iam_role, stage)
+  for key, value in getEnvVars(path, name, stage).items():
+    func = func.addEnvironmentVariable(key, value)
   func_ref = template.add_resource(func.build())
-  alias = getFunctionAlias(path, name, GetAtt(func_ref, "Arn"))
+  alias = getFunctionAlias(path, name, GetAtt(func_ref, "Arn"), stage)
   if alias is not None:
     template.add_resource(alias)
   template.add_output([
@@ -111,25 +121,31 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   return template
 
 
-def fillTemplate(path: str, funcs: List[str], template: Template) -> Template:
+def fillTemplate( path: str
+                , funcs: List[str]
+                , template: Template
+                , stage: str
+                ) -> Template:
   for func in funcs:
-    template = addFunction(path, func, template)
+    template = addFunction(path, func, template, stage)
   return template
 
 
-def getTemplateFromFolder(path: str) -> Template:
+def getTemplateFromFolder(path: str, stage: str) -> Template:
   ''' Transforms a folder with Lambdas into a CF Template '''
   t = Template()
   functions = folders(path)
-  t = fillTemplate(path, functions, t)
+  t = fillTemplate(path, functions, t, stage)
   return t
 
 
 if __name__ == "__main__":
-  # print ("using python version: " + sys.version)
-  if len(sys.argv) < 2:
-    print("Error: Need the path of the folder with the functions")
-    sys.exit(1)
-  path = sys.argv[1]
-  t = getTemplateFromFolder(path)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-p", "--path", help="Path of the folder with the source \
+                       -code of the aws lambda functions")
+  parser.add_argument("-s", "--stage", help="Name of the stage", \
+                      type = str)
+  args = parser.parse_args()
+  print(args.stage)
+  t = getTemplateFromFolder(args.path, args.stage)
   print(t.to_json())
