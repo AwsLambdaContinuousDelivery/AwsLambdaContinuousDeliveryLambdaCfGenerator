@@ -100,7 +100,7 @@ def addFunction(path: str, name: str, template: Template) -> Template:
   for key, value in getEnvVars(path, name).items():
     func = func.addEnvironmentVariable(key, value )
   func_ref = template.add_resource(func.build())
-  alias = getFunctionAlias(path, name, GetAtt(func_ref, "ARN"))
+  alias = getFunctionAlias(path, name, GetAtt(func_ref, "Arn"))
   if alias is not None:
     template.add_resource(alias)
   template.add_output([
