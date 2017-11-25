@@ -1,7 +1,7 @@
 from typing import List, Dict
 import os
 import sys
-from troposphere import Template, Output
+from troposphere import Template, Output, Export
 from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias
 from troposphereWrapper.awslambda import *
@@ -116,6 +116,7 @@ def addFunction( path: str
   template.add_output([
       Output( name + "ARN" + stage
             , Value = GetAtt(func_ref, "Arn")
+            , Export = Export(name + stage)
             , Description = stage +": ARN for Lambda Function"
             )])
   return template
