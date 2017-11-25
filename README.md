@@ -46,7 +46,7 @@ It is important that your functions have the following naming:
 - `{$name}IAM.py` must contain a function `get_IAM(stage: str) -> Role` which returns a `troposphere.iam.Role`
 - If you need, you can also provide environment variables to the lambda function by adding a `{$name}ENV.py` file containing a `get_env(stage: str) -> dict` function returning a dictionary of key, values. This file is optional
 - Alias are also supported by simply adding a `{$name}Alias.py` file containing a `get_alias(arn: str, stage: str) -> Alias` function
-
+- Each functions `ARN` is being exported under the concatenation of the name of the function and the stage `{$name} + {$stage}` and can be acquired via `Fn::ImportValue`. For more information check: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html
 ```
 example
 | exampleFunction.py
@@ -111,8 +111,11 @@ These files yield the following CloudFormation `json` template
 ```json
 {
     "Outputs": {
-        "exampleARN": {
-            "Description": "ARN for Lambda Function",
+        "exampleARNAlpha": {
+            "Description": "Alpha: ARN for Lambda Function",
+            "Export": {
+                "Name": "exampleAlpha"
+            },
             "Value": {
                 "Fn::GetAtt": [
                     "exampleAlpha",
@@ -256,6 +259,4 @@ These files yield the following CloudFormation `json` template
         }
     }
 }
-
-
 ```
