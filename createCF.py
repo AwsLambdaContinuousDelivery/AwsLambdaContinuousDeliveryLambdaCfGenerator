@@ -96,14 +96,16 @@ def folders(path: str) -> List[str]:
 def getLambda( name: str
              , code: List[str]
              , role: Role
+             , stack: str
              , stage: str
              , env_vars: dict
              ) -> Function:
   ''' Takes the source code and an IAM role and creates a lambda function '''
   code = Code( ZipFile = Join("\n", code) )
+  func_name = "".join([name, stack, stage])
   env_vars = Environment( Variables = env_vars )
-  return Function( toAlphanum(name+stage)
-                 , FunctionName = name + stage
+  return Function( toAlphanum(name)
+                 , FunctionName = func_name
                  , Handler = "".join(["index.", name, "_handler"])
                  , Code = code
                  , Role = Ref(role)
@@ -125,7 +127,7 @@ def addFunction( path: str
   env_vars = {}
   for key, value in getEnvVars(path, name, stage).items():
     env_vars[key] = value
-  func = getLambda(name, source_code, iam_role, stage, env_vars)
+  func = getLambda(name, source_code, iam_role, stackname, stage, env_vars)
   func_ref = template.add_resource(func)
   alias = getFunctionAlias(path, name, GetAtt(func_ref,"Arn"), stackname, stage)
   if alias is not None:
