@@ -28,7 +28,7 @@ def getFileContent(filepath: str) -> List[str]:
   return content
 
 
-def getIAM(path: str, prefix: str, stage: str) -> Role:
+def getIAM(path: str, prefix: str, stackname: str, stage: str) -> Role:
   ''' Returns the get_iam() function in prefixIAM.py '''
   iam_name = prefix + "IAM"
   iam_path = "".join([ path, prefix])
@@ -37,7 +37,8 @@ def getIAM(path: str, prefix: str, stage: str) -> Role:
     # we need to import here the file and call the get_iam() function
     sys.path.insert(0, iam_path)
     iam_module = __import__(iam_name)
-    return iam_module.get_iam(stage)
+    ref_name = toAlphanum("".join([prefix, stackname, stage]))
+    return iam_module.get_iam(stage, ref_name + "IAM")
   else:
     raise MissingFile("IAM file missing")
 
@@ -55,17 +56,21 @@ def getEnvVars(path: str, prefix: str, stage: str) -> dict:
     return {}
 
 
-def getFunctionAlias(path: str, prefix: str, arn: str, stage: str) -> Alias:
+def getFunctionAlias( path: str
+                    , prefix: str
+                    , arn: str
+                    , stackname: str
+                    , stage: str
+                    ) -> Alias:
   ''' Returns the Alias if present '''
-  alias_name = prefix + "Alias"
-  alias_path = ''.join([path, prefix])
-  alias_file = ''.join([alias_path, "/", alias_name, ".py"])
-  if os.path.isfile(alias_file):
-    sys.path.insert(0, alias_path)
-    alias_module = __import__(alias_name)
-    return alias_module.get_alias(arn, stage)
-  else:
-    return None
+  name = "".join([prefix, stackname, stage])
+
+  return Alias( toAlphanum(name) + "Alias"
+              , Description = "Automatic Generated Alias"
+              , FunctionName = arn
+              , FunctionVersion = "$LATEST"
+              , Name = name
+              )
 
 def getFunctionCode(path: str, prefix: str) -> List[str]:
   ''' Extracts Source Code from the prefixFunction.py file '''
@@ -95,12 +100,6 @@ def getLambda( name: str
              , env_vars: dict
              ) -> Function:
   ''' Takes the source code and an IAM role and creates a lambda function '''
-  # return LambdaBuilder() \
-  #   .setName(name + stage) \
-  #   .setHandler("index." + name + "_handler") \
-  #   .setSourceCode(code)\
-  #   .setRole(role) \
-  #   .setRuntime(LambdaRuntime.Python3x)
   code = Code( ZipFile = Join("\n", code) )
   env_vars = Environment( Variables = env_vars )
   return Function( toAlphanum(name+stage)
@@ -116,19 +115,19 @@ def getLambda( name: str
 def addFunction( path: str
                , name: str
                , template: Template
+               , stackname: str
                , stage: str
                ) -> Template:
   ''' Takes a prefix & adds the lambda function to the template '''
   source_code = getFunctionCode(path, name)
-  iam_role = getIAM(path, name, stage)
+  iam_role = getIAM(path, name, stackname, stage)
   template.add_resource(iam_role)
-  
   env_vars = {}
   for key, value in getEnvVars(path, name, stage).items():
     env_vars[key] = value
   func = getLambda(name, source_code, iam_role, stage, env_vars)
   func_ref = template.add_resource(func)
-  alias = getFunctionAlias(path, name, GetAtt(func_ref, "Arn"), stage)
+  alias = getFunctionAlias(path, name, GetAtt(func_ref,"Arn"), stackname, stage)
   if alias is not None:
     template.add_resource(alias)
   template.add_output([
@@ -143,18 +142,19 @@ def addFunction( path: str
 def fillTemplate( path: str
                 , funcs: List[str]
                 , template: Template
+                , stackname: str
                 , stage: str
                 ) -> Template:
   for func in funcs:
-    template = addFunction(path, func, template, stage)
+    template = addFunction(path, func, template, stackname, stage)
   return template
 
 
-def getTemplateFromFolder(path: str, stage: str) -> Template:
+def getTemplateFromFolder(path: str, stackname: str, stage: str) -> Template:
   ''' Transforms a folder with Lambdas into a CF Template '''
   t = Template()
   functions = folders(path)
-  t = fillTemplate(path, functions, t, stage)
+  t = fillTemplate(path, functions, t, stackname, stage)
   return t
 
 
@@ -164,5 +164,5 @@ if __name__ == "__main__":
   parser.add_argument("--stage", help="Name of the stage", type = str, required = True)
   parser.add_argument("--stack", help="Name of the stack", type = str, required = True)
   args = parser.parse_args()
-  t = getTemplateFromFolder(args.path, args.stack+args.stage)
+  t = getTemplateFromFolder(args.path, args.stack, args.stage)
   print(t.to_json())
