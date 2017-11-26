@@ -131,7 +131,7 @@ def addFunction( path: str
   if alias is not None:
     template.add_resource(alias)
   template.add_output([
-      Output( name + "ARN" + stage
+      Output( name + stackname + stage
             , Value = GetAtt(func_ref, "Arn")
             , Export = Export(name + stackname + stage)
             , Description = stage +": ARN for Lambda Function"
