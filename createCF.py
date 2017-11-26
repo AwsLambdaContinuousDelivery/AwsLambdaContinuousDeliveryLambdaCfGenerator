@@ -3,17 +3,22 @@ import os
 import sys
 from troposphere import Template, Output, Export
 from troposphere.iam import Role
-from troposphere.awslambda import Function, Alias
+from troposphere.awslambda import Function, Alias, Environment
 from troposphereWrapper.awslambda import *
 
 import argparse
+import re
+
+regex = re.compile('[^a-zA-Z0-9]')
+
+def toAlphanum(s: str) -> str:
+  return regex.sub('', s)
 
 class MissingFile(Exception):
   def __init__(self, message):
     self.message = message
   def __str__(self):
     return self.message
-
 
 def getFileContent(filepath: str) -> List[str]:
   ''' Returns the filecontent from a file '''
@@ -83,18 +88,29 @@ def folders(path: str) -> List[str]:
   return list(xs)
 
 
-def getLambdaBuilder( name: str
-                    , code: List[str]
-                    , role: Role
-                    , stage: str
-                    ) -> LambdaBuilder:
+def getLambda( name: str
+             , code: List[str]
+             , role: Role
+             , stage: str
+             , env_vars: dict
+             ) -> Function:
   ''' Takes the source code and an IAM role and creates a lambda function '''
-  return LambdaBuilder() \
-    .setName(name + stage) \
-    .setHandler("index." + name + "_handler") \
-    .setSourceCode(code)\
-    .setRole(role) \
-    .setRuntime(LambdaRuntime.Python3x)
+  # return LambdaBuilder() \
+  #   .setName(name + stage) \
+  #   .setHandler("index." + name + "_handler") \
+  #   .setSourceCode(code)\
+  #   .setRole(role) \
+  #   .setRuntime(LambdaRuntime.Python3x)
+  code = Code( ZipFile = Join("\n", code) )
+  env_vars = Environment( Variables = env_vars )
+  return Function( toAlphanum(name+stage)
+                 , FunctionName = name + stage
+                 , Handler = "".join(["index.", name, "_handler"])
+                 , Code = code
+                 , Role = Ref(role)
+                 , Runtime = "python3.6"
+                 , Environment = env_vars
+                 )
 
 
 def addFunction( path: str
@@ -106,10 +122,12 @@ def addFunction( path: str
   source_code = getFunctionCode(path, name)
   iam_role = getIAM(path, name, stage)
   template.add_resource(iam_role)
-  func = getLambdaBuilder(name, source_code, iam_role, stage)
+  
+  env_vars = {}
   for key, value in getEnvVars(path, name, stage).items():
-    func = func.addEnvironmentVariable(key, value)
-  func_ref = template.add_resource(func.build())
+    env_vars[key] = value
+  func = getLambda(name, source_code, iam_role, stage, env_vars)
+  func_ref = template.add_resource(func)
   alias = getFunctionAlias(path, name, GetAtt(func_ref, "Arn"), stage)
   if alias is not None:
     template.add_resource(alias)
