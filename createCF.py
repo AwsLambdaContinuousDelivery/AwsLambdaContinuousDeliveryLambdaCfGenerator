@@ -1,7 +1,7 @@
 from typing import List, Dict
 import os
 import sys
-from troposphere import Template, Output, Export
+from troposphere import Template, Output, Export, GetAtt
 from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias, Environment
 from troposphereWrapper.awslambda import *
@@ -108,7 +108,7 @@ def getLambda( name: str
                  , FunctionName = func_name
                  , Handler = "".join(["index.", name, "_handler"])
                  , Code = code
-                 , Role = Ref(role)
+                 , Role = GetAtt(role, "Arn")
                  , Runtime = "python3.6"
                  , Environment = env_vars
                  )
