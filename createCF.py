@@ -141,11 +141,10 @@ def getTemplateFromFolder(path: str, stage: str) -> Template:
 
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser()
-  parser.add_argument("-p", "--path", help="Path of the folder with the source \
-                       -code of the aws lambda functions")
-  parser.add_argument("-s", "--stage", help="Name of the stage", \
-                      type = str)
+ parser = argparse.ArgumentParser()
+  parser.add_argument("-p", "--path", help="Path of the folder with the source-code of the aws lambda functions")
+  parser.add_argument("--stage", help="Name of the stage", type = str, required = True)
+  parser.add_argument("--stack", help="Name of the stack", type = str, required = True)
   args = parser.parse_args()
-  t = getTemplateFromFolder(args.path, args.stage)
+  t = getTemplateFromFolder(args.path, args.stack+args.stage)
   print(t.to_json())
