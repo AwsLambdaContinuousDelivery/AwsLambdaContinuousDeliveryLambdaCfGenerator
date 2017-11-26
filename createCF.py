@@ -86,8 +86,6 @@ def folders(path: str) -> List[str]:
   ''' Returns all Folders in the paths except the `lambdaCICDBuilder folder'''
   # TODO: Pretty ugly, we should find a better way
   xs = os.listdir(path)
-  xs = filter(lambda x: "lambdaCICDBuilder" not in x, xs)
-  xs = filter(lambda x: "src" not in x, xs)
   xs = filter(lambda x: x[0] != ".", xs)
   xs = filter(lambda x: os.path.isdir(path + x), xs)
   return list(xs)
@@ -135,7 +133,7 @@ def addFunction( path: str
   template.add_output([
       Output( name + "ARN" + stage
             , Value = GetAtt(func_ref, "Arn")
-            , Export = Export(name + stage)
+            , Export = Export(name + stackname + stage)
             , Description = stage +": ARN for Lambda Function"
             )])
   return template
