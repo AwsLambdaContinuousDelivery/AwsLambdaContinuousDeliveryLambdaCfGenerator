@@ -4,7 +4,6 @@ import sys
 from troposphere import Template, Output, Export, GetAtt
 from troposphere.iam import Role
 from troposphere.awslambda import Function, Alias, Environment
-from troposphereWrapper.awslambda import *
 
 import argparse
 import re
