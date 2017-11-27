@@ -1,9 +1,9 @@
 from typing import List, Dict
 import os
 import sys
-from troposphere import Template, Output, Export, GetAtt
+from troposphere import Template, Output, Export, GetAtt, Join
 from troposphere.iam import Role
-from troposphere.awslambda import Function, Alias, Environment
+from troposphere.awslambda import Function, Alias, Environment, Code
 
 import argparse
 import re
