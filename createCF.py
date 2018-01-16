@@ -1,3 +1,7 @@
+# By Janos Potecki
+# University College London
+# January 2018
+
 from typing import List, Dict, Tuple
 import os
 import sys
@@ -100,7 +104,7 @@ def getLambda( name: str
   code = Code( S3Bucket = src[0] 
              , S3Key = src[1]
              )
-  func_name = "".join([name, stack, stage])
+  func_name = "".join([name, stage])
   env_vars = Environment( Variables = env_vars )
   memory = 128
   if "MemorySize" in config:
